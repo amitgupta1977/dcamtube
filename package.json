@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm rebuild && npx prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "node prisma/seed.js"
