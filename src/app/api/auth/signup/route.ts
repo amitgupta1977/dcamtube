@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Send verification email (best-effort; don't fail signup if email fails)
     try {
-      await sendVerificationEmail(email, code, firstName ?? 'User');
+      await sendVerificationEmail(email, code);
     } catch (emailErr) {
       console.error('Failed to send verification email:', emailErr);
     }

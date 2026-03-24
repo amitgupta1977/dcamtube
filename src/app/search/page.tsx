@@ -15,7 +15,7 @@ interface Video {
   views: number;
   commentsCount: number;
   createdAt: string;
-  user: { id: string; name: string };
+  user: { id: string; firstName: string; lastName: string };
 }
 
 function SearchContent() {

@@ -11,12 +11,17 @@ interface VideoCardProps {
     incidentType: string;
     views: number;
     commentsCount: number;
-    dateLabel: string;
+    dateLabel?: string;
+    createdAt?: string;
     user: { id: string; firstName: string; lastName: string };
   };
 }
 
 export default function VideoCard({ video }: VideoCardProps) {
+  const dateLabel = video.dateLabel || (video.createdAt
+    ? new Date(video.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '');
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;

@@ -87,6 +87,7 @@ export async function PATCH(
               firstName: 'Anonymous',
               lastName: '',
               email: `${userId}@anonymous.local`,
+              passwordHash: 'anonymous-account',
               role: 'NORMAL',
               points: 0,
               coins: 0,

@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { approved } = body;
+    const { status } = body;
 
     const video = await prisma.video.findUnique({
       where: { id }
@@ -18,27 +18,20 @@ export async function PATCH(
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    if (approved) {
-      await prisma.video.update({
-        where: { id },
-        data: { approved: true }
-      });
+    await prisma.video.update({
+      where: { id },
+      data: { status }
+    });
 
-      // Award 100 points to user
+    if (status === 'PUBLISHED') {
       await prisma.user.update({
         where: { id: video.userId },
         data: { points: { increment: 100 } }
       });
-
-      return NextResponse.json({ success: true, message: 'Video approved and 100 points awarded' });
-    } else {
-      await prisma.video.update({
-        where: { id },
-        data: { rejected: true }
-      });
-
-      return NextResponse.json({ success: true, message: 'Video rejected' });
+      return NextResponse.json({ success: true, message: 'Video published and 100 points awarded' });
     }
+
+    return NextResponse.json({ success: true, message: `Video ${status.toLowerCase()}` });
   } catch (error) {
     console.error('Update video error:', error);
     return NextResponse.json({ error: 'Failed to update video' }, { status: 500 });

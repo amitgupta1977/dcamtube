@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
 import { prisma } from '@/lib/prisma';
+import { SClient } from '@/lib/r2';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 
 async function saveCity(name: string, country: string) {
   try {
@@ -43,18 +42,18 @@ export async function POST(request: NextRequest) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const uploadDir = path.join(process.cwd(), 'public', 'videos');
-    
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
     const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const filename = `${uniqueSuffix}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filepath = path.join(uploadDir, filename);
-    await writeFile(filepath, buffer);
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const key = `videos/${uniqueSuffix}-${safeName}`;
 
-    const videoUrl = `/videos/${filename}`;
+    await SClient.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: key,
+      Body: buffer,
+      ContentType: file.type,
+    }));
+
+    const videoUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
 
     let user = await prisma.user.findFirst({
       where: { email: `vendor-${vendorId}@godashreel.com` }
@@ -64,7 +63,8 @@ export async function POST(request: NextRequest) {
       user = await prisma.user.create({
         data: {
           email: `vendor-${vendorId}@godashreel.com`,
-          name: `Vendor ${vendorId}`
+          firstName: `Vendor ${vendorId}`,
+          passwordHash: 'vendor-account',
         }
       });
     }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         road,
         incidentType,
         incidentDate: new Date(incidentDate),
-        approved: false,
+        status: 'DRAFT_ADMIN',
         userId: user.id
       }
     });
