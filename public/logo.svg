@@ -1,0 +1,28 @@
+<svg width="140" height="140" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Gradient Definitions -->
+  <defs>
+    <linearGradient id="camGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"></stop>
+      <stop offset="100%" stop-color="#1e3a8a"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- Camera Body -->
+  <rect x="20" y="50" width="100" height="50" rx="15" fill="url(#camGradient)"></rect>
+
+  <!-- Lens Outer -->
+  <circle cx="70" cy="75" r="22" fill="#111827"></circle>
+
+  <!-- Lens Ring -->
+  <circle cx="70" cy="75" r="16" fill="#ef4444"></circle>
+
+  <!-- Play Icon -->
+  <polygon points="65,68 82,75 65,82" fill="white"></polygon>
+
+  <!-- WiFi Signal -->
+  <path d="M55 40 Q70 25 85 40" stroke="#ef4444" stroke-width="3" fill="none"></path>
+  <path d="M60 45 Q70 35 80 45" stroke="#ef4444" stroke-width="3" fill="none"></path>
+  <path d="M65 50 Q70 45 75 50" stroke="#ef4444" stroke-width="3" fill="none"></path>
+
+</svg>

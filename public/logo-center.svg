@@ -1,0 +1,42 @@
+<svg width="260" height="160" viewBox="0 0 260 160" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="camGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"></stop>
+      <stop offset="100%" stop-color="#1e3a8a"></stop>
+    </linearGradient>
+
+    <linearGradient id="lensGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"></stop>
+      <stop offset="100%" stop-color="#b91c1c"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- Camera Body -->
+  <rect x="80" y="25" width="100" height="55" rx="16" fill="url(#camGradient)"></rect>
+
+  <!-- Top Bump -->
+  <rect x="110" y="15" width="40" height="18" rx="6" fill="#1e3a8a"></rect>
+
+  <!-- Lens Outer -->
+  <circle cx="130" cy="52" r="22" fill="#0f172a"></circle>
+
+  <!-- Lens Ring -->
+  <circle cx="130" cy="52" r="16" fill="url(#lensGradient)"></circle>
+
+  <!-- Play Icon -->
+  <polygon points="125,45 142,52 125,59" fill="white"></polygon>
+
+  <!-- WiFi Signal -->
+  <path d="M115 8 Q130 -5 145 8" stroke="#ef4444" stroke-width="3" fill="none"></path>
+  <path d="M120 12 Q130 3 140 12" stroke="#ef4444" stroke-width="3" fill="none"></path>
+  <path d="M125 16 Q130 10 135 16" stroke="#ef4444" stroke-width="3" fill="none"></path>
+
+  <!-- TEXT -->
+  <text x="130" y="120" text-anchor="middle" font-family="Segoe UI, Inter, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="0.5">
+
+    <tspan fill="#ffffff">DCam</tspan><tspan fill="#ef4444">Tube</tspan>
+  </text>
+
+</svg>
