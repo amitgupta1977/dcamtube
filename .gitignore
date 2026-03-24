@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -10,28 +8,21 @@
 !.yarn/releases
 !.yarn/versions
 
-
-# testing
-/coverage
-
-# next.js
+# .next build
 /.next/
 /out/
 
 # production
-/build
+/build/
 
 # misc
 .DS_Store
 *.pem
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (keep .env.example, ignore .env and .env.local)
+# env files
 .env
 .env.local
 .env.production
@@ -45,11 +36,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
-
 # Local DB
 dev.db
 dev.db-journal
 
-# Uploads (stored in R2, not in git)
+# Uploads
 public/videos/

@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --force && npx prisma generate && npm run build"
+  command = "npm install && npm pack @prisma/client && tar -xzf prisma-client-*.tgz && cp -rf package/generator-build node_modules/@prisma/client/ && npx prisma generate && npm run build"
   publish = ".next"
 
 [build.environment]
