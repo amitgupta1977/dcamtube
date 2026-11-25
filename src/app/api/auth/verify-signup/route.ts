@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { signToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { OTP_STORE } from '@/lib/otpStore';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const token = signToken(user.id, user.role);
 
     return NextResponse.json({
       ok: true,

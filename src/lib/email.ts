@@ -64,8 +64,14 @@ export async function sendVerificationEmail(to: string, code: string) {
       throw new Error('Failed to send email via Resend');
     }
 
-    console.log(`\n[DCamTube OTP] Email: ${to} | OTP: ${code} | Sent via Resend | ID: ${data?.id}\n`);
+    console.log(`[DCamTube] Verification email sent via Resend | ID: ${data?.id}`);
     return { previewUrl: `https://resend.com/emails/${data?.id}`, via: 'resend' };
+  }
+
+  // Ethereal is a fake test inbox anyone can open. Only use it on a local machine:
+  // in production it would hand out sign-up codes to whoever asked.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('RESEND_API_KEY is not set: cannot send verification email in production');
   }
 
   const { transporter, inboxUrl } = await getEtherealTransporter();
@@ -77,6 +83,6 @@ export async function sendVerificationEmail(to: string, code: string) {
   });
   const previewUrl = nodemailer.getTestMessageUrl(info) || inboxUrl;
 
-  console.log(`\n[DCamTube OTP] Email: ${to} | OTP: ${code} | Preview: ${previewUrl}\n`);
+  console.log(`[DCamTube dev] Verification email preview: ${previewUrl}`);
   return { previewUrl, via: 'ethereal' };
 }

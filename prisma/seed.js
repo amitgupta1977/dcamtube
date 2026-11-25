@@ -7,7 +7,15 @@ async function main() {
   await prisma.video.deleteMany().catch(() => {});
   await prisma.user.deleteMany().catch(() => {});
 
-  const hash = await bcrypt.hash('123456.987', 12);
+  // Never commit a real password. Set SEED_PASSWORD when you run the seed.
+  const seedPassword = process.env.SEED_PASSWORD;
+  if (!seedPassword || seedPassword.length < 12) {
+    throw new Error('Set SEED_PASSWORD (at least 12 characters) before running the seed.');
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('The seed deletes all users and videos. Refusing to run in production.');
+  }
+  const hash = await bcrypt.hash(seedPassword, 12);
 
   const admin = await prisma.user.create({
     data: {

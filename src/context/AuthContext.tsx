@@ -34,24 +34,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('godashreel_user');
       }
     }
-    // Auto-login via token if available
+    // Check the saved login with the server on every visit: refreshes points and role,
+    // and logs out cleanly if the token has expired (otherwise likes and uploads would fail).
     const token = localStorage.getItem('godashreel_token');
-    if (token && !stored) {
-      fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(res => res.json())
-        .then((data) => {
-          if (data?.user) {
-            const withAdmin = { ...data.user, isAdmin: data.user.role === 'ADMIN' };
-            setUser(withAdmin);
-            localStorage.setItem('godashreel_user', JSON.stringify(withAdmin));
-          }
-        })
-        .catch(() => {
-          localStorage.removeItem('godashreel_token');
-        });
+    if (!token) {
+      if (stored) {
+        setUser(null);
+        localStorage.removeItem('godashreel_user');
+      }
+      return;
     }
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
+        if (res.status === 401 || res.status === 404) {
+          setUser(null);
+          localStorage.removeItem('godashreel_user');
+          localStorage.removeItem('godashreel_token');
+          return;
+        }
+        const data = await res.json();
+        if (data?.user) {
+          const withAdmin = { ...data.user, isAdmin: data.user.role === 'ADMIN' };
+          setUser(withAdmin);
+          localStorage.setItem('godashreel_user', JSON.stringify(withAdmin));
+        }
+      })
+      .catch(() => {
+        // Network problem: keep the saved user for now.
+      });
   }, []);
 
   const login = (userData: User, token?: string) => {

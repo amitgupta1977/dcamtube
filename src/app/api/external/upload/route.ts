@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { SClient } from '@/lib/r2';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { timingSafeEqual } from 'crypto';
+
+function isValidApiKey(given: string | null): boolean {
+  const expected = process.env.EXTERNAL_UPLOAD_API_KEY;
+  // No key configured = partner uploads are switched off.
+  if (!expected || !given) return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 async function saveCity(name: string, country: string) {
   try {
@@ -23,8 +33,8 @@ export async function POST(request: NextRequest) {
   try {
     const apiKey = request.headers.get('x-api-key');
     
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key required' }, { status: 401 });
+    if (!isValidApiKey(apiKey)) {
+      return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
     }
 
     const formData = await request.formData();
@@ -36,7 +46,7 @@ export async function POST(request: NextRequest) {
     const incidentDate = formData.get('incidentDate') as string;
     const vendorId = formData.get('vendorId') as string;
 
-    if (!file || !country || !city || !road || !incidentType || !incidentDate) {
+    if (!file || !country || !city || !road || !incidentType || !incidentDate || !vendorId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 

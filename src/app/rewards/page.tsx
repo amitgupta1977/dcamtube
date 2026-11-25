@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { authHeaders } from '@/lib/clientAuth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -29,7 +30,7 @@ export default function RewardsPage() {
 
     async function fetchVideos() {
       if (!user) return;
-      const res = await fetch(`/api/user/profile?userId=${user.id}`);
+      const res = await fetch('/api/user/profile', { headers: authHeaders() });
       const data = await res.json();
       setVideos(data.user?.videos || []);
       setLoading(false);
@@ -46,8 +47,9 @@ export default function RewardsPage() {
     if (!user) return;
 
     try {
-      const res = await fetch(`/api/videos/${videoId}?userId=${user.id}`, {
-        method: 'DELETE'
+      const res = await fetch(`/api/videos/${videoId}`, {
+        method: 'DELETE',
+        headers: authHeaders()
       });
       const data = await res.json();
       

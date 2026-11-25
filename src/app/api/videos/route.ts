@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
-
-function verifyToken(req: NextRequest) {
-  const auth = req.headers.get('Authorization');
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  const token = auth.substring(7);
-  try {
-    return jwt.verify(token, JWT_SECRET) as any;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,10 +42,8 @@ export async function GET(request: NextRequest) {
       criteria.push('country');
     }
 
-    const shouldFilter = criteria.length >= 2;
-
     const videos = await prisma.video.findMany({
-      where: shouldFilter ? where : where,
+      where,
       include: {
         user: {
           select: { id: true, firstName: true, lastName: true }
@@ -75,9 +61,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = verifyToken(request);
-    if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (payload.role !== 'NORMAL') return NextResponse.json({ error: 'Only normal users can upload' }, { status: 403 });
+    const user = await getCurrentUser(request);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'NORMAL') return NextResponse.json({ error: 'Only normal users can upload' }, { status: 403 });
 
     const body = await request.json();
     const {
@@ -108,15 +94,11 @@ export async function POST(request: NextRequest) {
         incidentType,
         incidentDate: new Date(incidentDate),
         status: 'DRAFT_ADMIN',
-        userId: payload.userId
+        userId: user.id
       }
     });
 
-    await prisma.user.update({
-      where: { id: payload.userId },
-      data: { points: { increment: 100 } }
-    }).catch(() => {});
-
+    // No points here: they are given when an admin approves the video.
     return NextResponse.json({ ok: true, videoId: video.id });
   } catch (error) {
     console.error('Create video error:', error);

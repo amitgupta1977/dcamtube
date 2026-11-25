@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser, resolveActorId } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function GET(
       where: { videoId: id, type: 'dislike' }
     });
     
-    await prisma.video.update({
+    await prisma.video.updateMany({
       where: { id },
       data: { likes: likeCount, dislikes: dislikeCount }
     });
@@ -40,6 +41,14 @@ export async function GET(
 
     if (!video) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    }
+
+    // Videos waiting for review or rejected are visible only to their uploader and admins.
+    if (video.status !== 'PUBLISHED') {
+      const viewer = await getCurrentUser(request);
+      if (!viewer || (viewer.id !== video.userId && viewer.role !== 'ADMIN')) {
+        return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+      }
     }
 
     return NextResponse.json({ video });
@@ -72,30 +81,9 @@ export async function PATCH(
     }
 
     if (action === 'like' || action === 'dislike') {
-      if (!userId) {
-        return NextResponse.json({ error: 'User ID required' }, { status: 400 });
-      }
-
-      // Get or create anonymous user if needed
-      let effectiveUserId = userId;
-      if (userId.startsWith('anon_')) {
-        let anonUser = await prisma.user.findUnique({ where: { id: userId } });
-        if (!anonUser) {
-          anonUser = await prisma.user.create({
-            data: {
-              id: userId,
-              firstName: 'Anonymous',
-              lastName: '',
-              email: `${userId}@anonymous.local`,
-              passwordHash: 'anonymous-account',
-              role: 'NORMAL',
-              points: 0,
-              coins: 0,
-              emailVerified: true
-            }
-          });
-        }
-        effectiveUserId = anonUser.id;
+      const effectiveUserId = await resolveActorId(request, userId);
+      if (!effectiveUserId) {
+        return NextResponse.json({ error: 'Not allowed' }, { status: 401 });
       }
 
       // Check if user already liked/disliked
@@ -183,11 +171,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Please log in' }, { status: 401 });
     }
 
     const video = await prisma.video.findUnique({ where: { id } });
@@ -195,10 +181,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    const isAdmin = user?.role === 'ADMIN';
+    const isAdmin = user.role === 'ADMIN';
 
-    if (video.userId !== userId && !isAdmin) {
+    if (video.userId !== user.id && !isAdmin) {
       return NextResponse.json({ error: 'Not authorized to delete this video' }, { status: 403 });
     }
 

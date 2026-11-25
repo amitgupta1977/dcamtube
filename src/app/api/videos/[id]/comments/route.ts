@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { resolveActorId } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -31,42 +32,29 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    let { content, userId, userName } = body;
+    const { content, userId, userName } = body;
 
-    if (!content || !userId) {
-      return NextResponse.json({ error: 'Content and user ID required' }, { status: 400 });
+    const text = typeof content === 'string' ? content.trim() : '';
+    if (!text) {
+      return NextResponse.json({ error: 'Comment cannot be empty' }, { status: 400 });
+    }
+    if (text.length > 1000) {
+      return NextResponse.json({ error: 'Comment is too long (max 1000 characters)' }, { status: 400 });
     }
 
-    // Get or create anonymous user if needed
-    let effectiveUserId = userId;
-    if (userId.startsWith('anon_')) {
-      let anonUser = await prisma.user.findUnique({ where: { id: userId } });
-      if (!anonUser) {
-          anonUser = await prisma.user.create({
-            data: {
-              id: userId,
-              firstName: userName || 'Anonymous',
-              lastName: '',
-              email: `${userId}@anonymous.local`,
-              passwordHash: 'anonymous-account',
-              role: 'NORMAL',
-              points: 0,
-              coins: 0,
-              emailVerified: true
-            }
-          });
-        } else if (userName && userName !== 'Anonymous') {
-          await prisma.user.update({
-            where: { id: userId },
-            data: { firstName: userName }
-          });
-      }
-      effectiveUserId = anonUser.id;
+    const video = await prisma.video.findUnique({ where: { id }, select: { status: true } });
+    if (!video || video.status !== 'PUBLISHED') {
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    }
+
+    const effectiveUserId = await resolveActorId(request, userId, userName);
+    if (!effectiveUserId) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 401 });
     }
 
     const comment = await prisma.comment.create({
       data: {
-        content,
+        content: text,
         videoId: id,
         userId: effectiveUserId
       },

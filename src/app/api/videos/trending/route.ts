@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const videos = await prisma.video.findMany({
+      where: { status: 'PUBLISHED' },
       include: {
         user: {
           select: { id: true, firstName: true, lastName: true }
