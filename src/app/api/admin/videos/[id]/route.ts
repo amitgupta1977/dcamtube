@@ -1,36 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getAdmin } from '@/lib/auth';
+import { isVideoStatus, setVideoStatus } from '@/lib/moderation';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!(await getAdmin(request))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { id } = await params;
-    const body = await request.json();
-    const { status } = body;
-
-    const video = await prisma.video.findUnique({
-      where: { id }
-    });
-
-    if (!video) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    const { status } = await request.json();
+    if (!isVideoStatus(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
-    await prisma.video.update({
-      where: { id },
-      data: { status }
-    });
+    const result = await setVideoStatus(id, status);
+    if (!result) return NextResponse.json({ error: 'Video not found' }, { status: 404 });
 
-    if (status === 'PUBLISHED') {
-      await prisma.user.update({
-        where: { id: video.userId },
-        data: { points: { increment: 100 } }
-      });
+    if (result.pointsAwarded) {
       return NextResponse.json({ success: true, message: 'Video published and 100 points awarded' });
     }
-
     return NextResponse.json({ success: true, message: `Video ${status.toLowerCase()}` });
   } catch (error) {
     console.error('Update video error:', error);

@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
     const { firstName, lastName, email, password, country, city } = data;
 
     // No-email signup mode (for local no-code experience)
-    const testMode = process.env.TEST_SIGNUP === 'true' || req.headers.get('X-TEST-SIGNUP') === '1';
+    // Only on a local machine with TEST_SIGNUP=true. Never in production, and never from a request header.
+    const testMode = process.env.NODE_ENV !== 'production' && process.env.TEST_SIGNUP === 'true';
 
     if (!email || !password || !firstName || !firstName.trim()) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

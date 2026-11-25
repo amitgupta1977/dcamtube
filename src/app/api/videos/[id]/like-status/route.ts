@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isAnonymousId, readUserId } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
@@ -7,20 +8,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
+    const claimed = new URL(request.url).searchParams.get('userId');
+    // Logged-in users are identified by their token; otherwise only anonymous ids are accepted.
+    const effectiveUserId = readUserId(request) ?? (isAnonymousId(claimed) ? claimed : null);
+    if (!effectiveUserId) {
       return NextResponse.json({ liked: false, disliked: false });
-    }
-
-    let effectiveUserId = userId;
-    if (userId.startsWith('anon_')) {
-      const anonUser = await prisma.user.findUnique({ where: { id: userId } });
-      if (!anonUser) {
-        return NextResponse.json({ liked: false, disliked: false });
-      }
-      effectiveUserId = anonUser.id;
     }
 
     const existingLike = await prisma.like.findUnique({

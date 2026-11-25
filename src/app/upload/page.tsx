@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { authHeaders } from '@/lib/clientAuth';
 
 const INCIDENT_TYPES = [
   'Accident', 'Road rage', 'Traffic Violation', 'Traffic Jam', 'Road complaint', 'Scenic view', 'Other'
@@ -150,6 +151,7 @@ export default function UploadPage() {
 
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
+        headers: authHeaders(),
         body: formData
       });
 

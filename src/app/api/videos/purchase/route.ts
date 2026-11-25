@@ -1,44 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
+
+const PRICE = 500;
 
 export async function POST(request: NextRequest) {
   try {
-    const { videoId, userId } = await request.json();
+    const user = await getCurrentUser(request);
+    if (!user) return NextResponse.json({ error: 'Please log in' }, { status: 401 });
 
-    if (!videoId || !userId) {
-      return NextResponse.json({ error: 'Video ID and User ID required' }, { status: 400 });
-    }
+    const { videoId } = await request.json();
+    if (!videoId) return NextResponse.json({ error: 'Video ID required' }, { status: 400 });
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
+    const video = await prisma.video.findUnique({ where: { id: videoId }, select: { status: true } });
+    if (!video || video.status !== 'PUBLISHED') return NextResponse.json({ error: 'Video not found' }, { status: 404 });
 
-    if (user.points < 500) {
-      return NextResponse.json({ error: 'Insufficient points. Need 500 points.' }, { status: 400 });
-    }
-
-    const existingPurchase = await prisma.videoPurchase.findUnique({
-      where: {
-        videoId_userId: { videoId, userId }
-      }
+    const result = await prisma.$transaction(async (tx) => {
+      const already = await tx.videoPurchase.findUnique({ where: { videoId_userId: { videoId, userId: user.id } } });
+      if (already) return { error: 'Already purchased' };
+      // Only deducts if the balance is still enough at this moment.
+      const charged = await tx.user.updateMany({
+        where: { id: user.id, points: { gte: PRICE } },
+        data: { points: { decrement: PRICE } },
+      });
+      if (charged.count !== 1) return { error: `Insufficient points. Need ${PRICE} points.` };
+      await tx.videoPurchase.create({ data: { videoId, userId: user.id, pointsPaid: PRICE } });
+      const updated = await tx.user.findUnique({ where: { id: user.id }, select: { points: true } });
+      return { remainingPoints: updated?.points ?? 0 };
     });
 
-    if (existingPurchase) {
-      return NextResponse.json({ error: 'Already purchased' }, { status: 400 });
-    }
-
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: userId },
-        data: { points: { decrement: 500 } }
-      }),
-      prisma.videoPurchase.create({
-        data: { videoId, userId, pointsPaid: 500 }
-      })
-    ]);
-
-    return NextResponse.json({ success: true, remainingPoints: user.points - 500 });
+    if ('error' in result) return NextResponse.json({ error: result.error }, { status: 400 });
+    return NextResponse.json({ success: true, remainingPoints: result.remainingPoints });
   } catch (error) {
     console.error('Purchase error:', error);
     return NextResponse.json({ error: 'Failed to purchase' }, { status: 500 });
@@ -47,22 +39,15 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const videoId = searchParams.get('videoId');
-    const userId = searchParams.get('userId');
-
-    if (!videoId || !userId) {
-      return NextResponse.json({ purchased: false });
-    }
+    const user = await getCurrentUser(request);
+    const videoId = new URL(request.url).searchParams.get('videoId');
+    if (!user || !videoId) return NextResponse.json({ purchased: false });
 
     const purchase = await prisma.videoPurchase.findUnique({
-      where: {
-        videoId_userId: { videoId, userId }
-      }
+      where: { videoId_userId: { videoId, userId: user.id } }
     });
-
     return NextResponse.json({ purchased: !!purchase });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ purchased: false });
   }
 }

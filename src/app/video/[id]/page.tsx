@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { authHeaders } from '@/lib/clientAuth';
 
 interface Video {
   id: string;
@@ -61,11 +62,11 @@ export default function VideoPage() {
         const userId = user?.id || getAnonymousId();
         await fetch(`/api/videos/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ action: 'view', userId })
         });
 
-        const res = await fetch(`/api/videos/${id}`);
+        const res = await fetch(`/api/videos/${id}`, { headers: authHeaders() });
         const data = await res.json();
         
         if (data.video) {
@@ -74,7 +75,7 @@ export default function VideoPage() {
           
           // Check if user already liked/disliked
           try {
-            const likeRes = await fetch(`/api/videos/${id}/like-status?userId=${userId}`);
+            const likeRes = await fetch(`/api/videos/${id}/like-status?userId=${userId}`, { headers: authHeaders() });
             const likeData = await likeRes.json();
             if (likeData.liked) setLiked(true);
             if (likeData.disliked) setDisliked(true);
@@ -104,7 +105,7 @@ export default function VideoPage() {
       const userId = user?.id || getAnonymousId();
       const res = await fetch(`/api/videos/${video.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'like', userId })
       });
       const data = await res.json();
@@ -128,7 +129,7 @@ export default function VideoPage() {
       const userId = user?.id || getAnonymousId();
       const res = await fetch(`/api/videos/${video.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ action: 'dislike', userId })
       });
       const data = await res.json();
@@ -155,7 +156,7 @@ export default function VideoPage() {
     try {
       const res = await fetch(`/api/videos/${video.id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ 
           content: comment, 
           userId,
